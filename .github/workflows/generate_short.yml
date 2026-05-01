@@ -6,9 +6,14 @@ on:
   workflow_dispatch:        # Manual trigger from GitHub Actions tab
 
 jobs:
-  generate-and-upload:
+
+  # ─────────────────────────────────────────────
+  # JOB 1: Generate video — runs automatically
+  # ─────────────────────────────────────────────
+  generate:
+    name: 🎬 Generate Video
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
@@ -19,7 +24,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install FFmpeg
+      - name: Install FFmpeg + fonts
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-liberation
@@ -27,19 +32,52 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Generate & Upload YouTube Short
+      - name: Generate script, voiceover, footage & assemble video
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python generate_video.py
+
+      - name: Upload review package (video + script + thumbnail)
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-package
+          path: |
+            final_short.mp4
+            thumbnail.jpg
+            script.txt
+          retention-days: 5
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Upload to YouTube — waits for approval
+  # ─────────────────────────────────────────────
+  upload:
+    name: 🚀 Upload to YouTube
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production   # ← pauses here, sends you approval email
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download approved video package
+        uses: actions/download-artifact@v4
+        with:
+          name: review-package
+
+      - name: Upload approved Short to YouTube
+        env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python main.py
-
-      - name: Upload video as artifact (backup copy)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: wildstrike-short
-          path: final_short.mp4
-          retention-days: 3
+        run: python upload_video.py
