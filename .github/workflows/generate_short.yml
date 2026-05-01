@@ -33,6 +33,8 @@ jobs:
         run: |
           pip uninstall -y google-generativeai || true
           pip install -r requirements.txt
+
+      - name: Generate script, voiceover, footage & assemble video
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
