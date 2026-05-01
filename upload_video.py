@@ -8,8 +8,10 @@ Runs AFTER manual approval in GitHub Actions environment gate.
 
 import os
 import sys
-from youtube_uploader import upload_short
-from trending_hashtags import get_trending_hashtags, build_hashtag_string
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pipeline"))
+
+from pipeline.youtube_uploader import upload_short
+from pipeline.trending_hashtags import get_trending_hashtags, build_hashtag_string
 
 
 def main():

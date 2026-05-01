@@ -1,12 +1,13 @@
 import os
 import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pipeline"))
 
-from script_generator import generate_script
-from voiceover import generate_voiceover
-from footage_fetcher import fetch_wildlife_clips
-from video_assembler import assemble_video
-from thumbnail_generator import generate_thumbnail
-from youtube_uploader import upload_short
+from pipeline.script_generator import generate_script
+from pipeline.voiceover import generate_voiceover
+from pipeline.footage_fetcher import fetch_wildlife_clips
+from pipeline.video_assembler import assemble_video
+from pipeline.thumbnail_generator import generate_thumbnail
+from pipeline.youtube_uploader import upload_short
 
 
 def main():
