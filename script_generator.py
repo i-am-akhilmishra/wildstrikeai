@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from google import genai
 import os
 import random
 
@@ -9,12 +9,14 @@ TOPICS = [
     "a leopard silently stalking its prey through tall grass",
     "a crocodile launching from a river to catch a zebra",
     "a pack of wild dogs cornering an impala",
+    "a great white shark ambushing a seal from below",
+    "a wolf pack chasing an elk through deep snow",
+    "a golden eagle diving at 200mph to snatch a rabbit",
 ]
 
 
 def generate_script() -> str:
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     topic = random.choice(TOPICS)
 
@@ -31,7 +33,10 @@ Requirements:
 
 Output ONLY the narration text. No titles, no labels, no quotes — just the raw script."""
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+    )
     script = response.text.strip()
     print(f"[Script Generated]\n{script}\n")
     return script
