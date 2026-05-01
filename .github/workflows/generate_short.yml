@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 9 * * *'   # Runs daily at 9 AM UTC — edit as you like
   workflow_dispatch:        # Manual trigger from GitHub Actions tab
+    inputs:
+      video_num:
+        description: 'Video number for today (video1 or video2)'
+        required: false
+        default: 'video1'
 
 jobs:
 
@@ -14,6 +19,9 @@ jobs:
     name: 🎬 Generate Video
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      artifact_date: ${{ env.ARTIFACT_DATE }}
+      artifact_vid:  ${{ env.ARTIFACT_VID }}
 
     steps:
       - name: Checkout repository
@@ -40,14 +48,24 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: python generate_video.py
 
+      - name: Rename outputs with date and video number
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          VID=${{ github.event.inputs.video_num || 'video1' }}
+          mv final_short.mov ${DATE}_${VID}.mov
+          mv thumbnail.jpg   ${DATE}_${VID}_thumbnail.jpg
+          mv script.txt      ${DATE}_${VID}_script.txt
+          echo "ARTIFACT_DATE=${DATE}" >> $GITHUB_ENV
+          echo "ARTIFACT_VID=${VID}"  >> $GITHUB_ENV
+
       - name: Upload review package (video + script + thumbnail)
         uses: actions/upload-artifact@v4
         with:
-          name: review-package
+          name: review-${{ env.ARTIFACT_DATE }}-${{ env.ARTIFACT_VID }}
           path: |
-            final_short.mov
-            thumbnail.jpg
-            script.txt
+            ${{ env.ARTIFACT_DATE }}_${{ env.ARTIFACT_VID }}.mov
+            ${{ env.ARTIFACT_DATE }}_${{ env.ARTIFACT_VID }}_thumbnail.jpg
+            ${{ env.ARTIFACT_DATE }}_${{ env.ARTIFACT_VID }}_script.txt
           retention-days: 5
 
   # ─────────────────────────────────────────────
@@ -75,7 +93,13 @@ jobs:
       - name: Download approved video package
         uses: actions/download-artifact@v4
         with:
-          name: review-package
+          name: review-${{ needs.generate.outputs.artifact_date }}-${{ needs.generate.outputs.artifact_vid }}
+
+      - name: Restore standard filenames for upload script
+        run: |
+          mv *_video*.mov final_short.mov       || true
+          mv *_thumbnail.jpg thumbnail.jpg       || true
+          mv *_script.txt script.txt             || true
 
       - name: Upload approved Short to YouTube
         env:
