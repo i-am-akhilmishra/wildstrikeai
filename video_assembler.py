@@ -150,7 +150,8 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
             continue
 
         remaining = target_duration - time_used
-        use_dur = min(src_dur, max(remaining, 3.0))  # at least 3s per clip
+        # Cap at 5s max — zoompan buffers d=duration*fps frames; >5s OOMs on GitHub Actions
+        use_dur = min(src_dur, max(remaining, 3.0), 5.0)
 
         out = os.path.abspath(f"temp_clips/v_{idx}.mp4")
         print(f"[Video] Converting clip {idx + 1} ({use_dur:.1f}s)...")
