@@ -3,21 +3,16 @@ import edge_tts
 import random
 
 
-# Dramatic male and female voices — Microsoft Edge Neural TTS (100% free, no API key)
-MALE_VOICES = [
-    "en-GB-RyanNeural",       # British male — deep, authoritative
-    "en-US-GuyNeural",        # American male — commanding
-    "en-AU-WilliamNeural",    # Australian male — gritty
+# Most natural/human-sounding Edge Neural TTS voices
+# These are the closest to real documentary narrators
+ALL_VOICES = [
+    "en-US-ChristopherNeural",  # warm, natural American male — most human-sounding
+    "en-US-EricNeural",          # clear, calm American male
+    "en-US-JennyNeural",         # warm, natural American female
+    "en-GB-RyanNeural",          # natural British male — documentary tone
+    "en-US-GuyNeural",           # authoritative American male
+    "en-US-AriaNeural",          # expressive American female
 ]
-
-FEMALE_VOICES = [
-    "en-GB-SoniaNeural",      # British female — dramatic, bold
-    "en-US-AriaNeural",       # American female — expressive
-    "en-AU-NatashaNeural",    # Australian female — strong tone
-]
-
-# Pick one male + one female randomly per run for variety
-ALL_VOICES = MALE_VOICES + FEMALE_VOICES
 
 
 async def _generate_async(script: str, output_path: str):
@@ -26,8 +21,8 @@ async def _generate_async(script: str, output_path: str):
     communicate = edge_tts.Communicate(
         text=script,
         voice=voice,
-        rate="-8%",       # slightly slower = more dramatic, easier to follow
-        pitch="-8Hz",     # deeper pitch for gravitas
+        rate="-20%",      # noticeably slower — natural documentary pace
+        pitch="-3Hz",    # very slight depth, keeps voice sounding natural
     )
     await communicate.save(output_path)
 

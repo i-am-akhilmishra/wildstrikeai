@@ -169,17 +169,14 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
         capture_output=True,
     )
 
-    # Step 3: Build caption filter
-    caption_filter = build_caption_filter(script, audio_duration)
-
-    # Step 4: Final composite — 1080p 30fps MOV
+    # Step 3: Final composite — 1080p 30fps MOV
     abs_audio = os.path.abspath(audio_path)
     abs_concat = concat_out
 
     brand_filter = (
-        "drawtext=text='\\U0001f981 WildStrikeAI'"
+        "drawtext=text='WildStrikeAI'"
         ":fontsize=36"
-        ":fontcolor=yellow"
+        ":fontcolor=white"
         ":borderw=3"
         ":bordercolor=black"
         ":x=40:y=55"
@@ -188,7 +185,7 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
 
     fade_filter = "fade=t=in:st=0:d=0.5"
 
-    full_vf = f"{caption_filter},{brand_filter},{fade_filter}"
+    full_vf = f"{brand_filter},{fade_filter}"
 
     subprocess.run(
         [
@@ -200,7 +197,9 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
             "-map", "1:a",
             "-c:v", "libx264", "-preset", "fast", "-crf", "20",
             "-profile:v", "high", "-level", "4.0",
+            "-vsync", "cfr", "-r", str(OUT_FPS),
             "-c:a", "aac", "-b:a", "192k",
+            "-af", "aresample=async=1",
             "-t", str(target_duration),
             "-shortest",
             "-movflags", "+faststart",
