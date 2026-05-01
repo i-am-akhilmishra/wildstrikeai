@@ -21,16 +21,16 @@ def get_duration(file_path: str) -> float:
     return float(data["format"]["duration"])
 
 
-# Output resolution — 4K vertical (2160x3840) at 60fps
-OUT_W = 2160
-OUT_H = 3840
-OUT_FPS = 60
+# Output resolution — 1080p vertical (1080x1920) at 30fps
+OUT_W = 1080
+OUT_H = 1920
+OUT_FPS = 30
 
 
 def make_vertical_clip(input_path: str, output_path: str, duration: float):
     """
-    Converts any clip to 2160x3840 (4K 9:16 vertical) at 60fps.
-    - Direct Lanczos scale + crop to 4K (no zoompan — frame-buffering caused OOM)
+    Converts any clip to 1080x1920 (1080p 9:16 vertical) at 30fps.
+    - Direct Lanczos scale + crop
     - Cinematic orange-teal colour grade
     """
     grade = (
@@ -51,8 +51,8 @@ def make_vertical_clip(input_path: str, output_path: str, duration: float):
         "-i", input_path,
         "-t", str(duration),
         "-vf", vf,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-        "-profile:v", "high", "-level", "5.2",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+        "-profile:v", "high", "-level", "4.0",
         "-pix_fmt", "yuv420p",
         "-an",
         output_path,
@@ -102,9 +102,9 @@ def build_caption_filter(script: str, total_duration: float) -> str:
 
         filters.append(
             f"drawtext=text='{display}'"
-            f":fontsize=88"
+            f":fontsize=44"
             f":fontcolor=white"
-            f":borderw=6"
+            f":borderw=3"
             f":bordercolor=black"
             f":x=(w-text_w)/2"
             f":y=h*0.78"
@@ -169,18 +169,18 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
         capture_output=True,
     )
 
-    # Step 3: Build caption filter (scale font for 4K width)
+    # Step 3: Build caption filter
     caption_filter = build_caption_filter(script, audio_duration)
 
-    # Step 4: Final composite — 4K 60fps MOV
+    # Step 4: Final composite — 1080p 30fps MOV
     abs_audio = os.path.abspath(audio_path)
     abs_concat = concat_out
 
     brand_filter = (
         "drawtext=text='\\U0001f981 WildStrikeAI'"
-        ":fontsize=72"
+        ":fontsize=36"
         ":fontcolor=yellow"
-        ":borderw=5"
+        ":borderw=3"
         ":bordercolor=black"
         ":x=40:y=55"
         ":enable='between(t,0,{dur})'".format(dur=target_duration)
@@ -198,8 +198,8 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
             "-filter_complex", f"[0:v]{full_vf}[v]",
             "-map", "[v]",
             "-map", "1:a",
-            "-c:v", "libx264", "-preset", "slow", "-crf", "18",
-            "-profile:v", "high", "-level", "5.2",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+            "-profile:v", "high", "-level", "4.0",
             "-c:a", "aac", "-b:a", "192k",
             "-t", str(target_duration),
             "-shortest",
@@ -210,5 +210,5 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
         capture_output=True,
     )
 
-    print(f"[Video] Final 4K 60fps MOV ready: {output_path}")
+    print(f"[Video] Final 1080p 30fps MOV ready: {output_path}")
     return output_path
