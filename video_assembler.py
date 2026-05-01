@@ -53,6 +53,7 @@ def make_vertical_clip(input_path: str, output_path: str, duration: float):
         "-vf", vf,
         "-c:v", "libx264", "-preset", "fast", "-crf", "18",
         "-profile:v", "high", "-level", "5.2",
+        "-pix_fmt", "yuv420p",
         "-an",
         output_path,
     ]
