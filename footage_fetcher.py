@@ -23,14 +23,16 @@ SEARCH_TERMS = [
 ]
 
 
-def fetch_wildlife_clips(api_key: str, num_clips: int = 6, save_dir: str = "clips") -> list:
+def fetch_wildlife_clips(api_key: str, search_term: str = None, num_clips: int = 6, save_dir: str = "clips") -> list:
     """
-    Downloads wildlife video clips from Pexels (free API — 200 req/hour).
-    https://www.pexels.com/api/documentation/#videos-search
+    Downloads wildlife video clips from Pexels matching the script's topic.
+    search_term is passed from generate_script() to ensure footage matches narration.
     """
     os.makedirs(save_dir, exist_ok=True)
 
-    term = random.choice(SEARCH_TERMS)
+    # Use the topic-matched term; fall back to random only if not provided
+    term = search_term if search_term else random.choice(SEARCH_TERMS)
+    print(f"[Pexels] Footage search term: '{term}'")
     headers = {"Authorization": api_key}
     downloaded = []
 

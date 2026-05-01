@@ -21,24 +21,25 @@ def main():
     print("  WildStrikeAI — Video Generation (Step 1/2)")
     print("=" * 50)
 
-    # ── Step 1: Generate script ──
+    # ── Step 1: Generate script + get matched footage search term ──
     print("\n[1/5] Generating script...")
-    script = generate_script()
+    script, search_term = generate_script()  # returns (script, footage_search_term)
 
     # Save script to file so it shows in GitHub Actions summary + artifact
     with open("script.txt", "w", encoding="utf-8") as f:
-        f.write(script)
+        f.write(f"Footage search term: {search_term}\n\n{script}")
 
     # Write to GitHub Actions Job Summary (visible in Actions UI)
     summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_file:
         with open(summary_file, "a", encoding="utf-8") as f:
             f.write("## 📋 Generated Script\n\n")
+            f.write(f"**Footage topic:** `{search_term}`\n\n")
             f.write(f"```\n{script}\n```\n\n")
             f.write("## 📥 Review Checklist\n")
             f.write("- [ ] Script sounds natural and dramatic\n")
             f.write("- [ ] No inappropriate content\n")
-            f.write("- [ ] Download & watch `final_short.mp4` from the artifact below\n")
+            f.write("- [ ] Download & watch `final_short.mov` from the artifact below\n")
             f.write("- [ ] Approve the `upload` job when satisfied\n\n")
             f.write("> ⏳ **Upload job is paused — waiting for your approval.**\n")
 
@@ -46,10 +47,11 @@ def main():
     print("\n[2/5] Generating voiceover...")
     audio_path = generate_voiceover(script, "voiceover.mp3")
 
-    # ── Step 3: Footage ──
+    # ── Step 3: Footage — matched to the script topic ──
     print("\n[3/5] Fetching wildlife footage from Pexels...")
     clips = fetch_wildlife_clips(
         api_key=os.environ["PEXELS_API_KEY"],
+        search_term=search_term,   # ← matched to narration topic
         num_clips=6,
         save_dir="clips",
     )
@@ -58,8 +60,8 @@ def main():
         sys.exit(1)
 
     # ── Step 4: Assemble video ──
-    print("\n[4/5] Assembling video...")
-    video_path = assemble_video(clips, audio_path, script, "final_short.mp4")
+    print("\n[4/5] Assembling 4K 60fps video...")
+    video_path = assemble_video(clips, audio_path, script, "final_short.mov")
 
     # ── Step 5: Thumbnail ──
     print("\n[5/5] Generating thumbnail...")

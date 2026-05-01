@@ -44,7 +44,7 @@ def main():
 
     # ── Upload ──
     print("\n[6/6] Uploading approved video to YouTube...")
-    upload_short("final_short.mp4", "thumbnail.jpg", title=title, description=description)
+    upload_short("final_short.mov", "thumbnail.jpg", title=title, description=description)
 
     print("\n" + "=" * 50)
     print("  Done! Check your YouTube channel.")

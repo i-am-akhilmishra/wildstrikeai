@@ -21,30 +21,35 @@ def get_duration(file_path: str) -> float:
     return float(data["format"]["duration"])
 
 
+# Output resolution — 4K vertical (2160x3840) at 60fps
+OUT_W = 2160
+OUT_H = 3840
+OUT_FPS = 60
+
+
 def make_vertical_clip(input_path: str, output_path: str, duration: float):
     """
-    Converts any landscape or portrait clip to 1080x1920 (9:16 vertical).
-    Applies cinematic effects:
-      - Smart scale + pad to fill 9:16
-      - Slow Ken Burns zoom-in (zoompan)
-      - Cinematic colour grade: boosted contrast, warm orange-teal tint
-      - Slight vignette via curves
+    Converts any clip to 2160x3840 (4K 9:16 vertical) at 60fps.
+    - Lanczos upscale to 4K
+    - Ken Burns slow zoom
+    - Cinematic orange-teal colour grade
     """
-    # Cinematic colour grade + vignette via eq and curves filters
     grade = (
-        "eq=contrast=1.25:brightness=0.02:saturation=1.3:gamma_r=1.05:gamma_b=0.92,"
-        "curves=r='0/0 0.5/0.55 1/1':b='0/0 0.5/0.45 1/0.92'"
+        "eq=contrast=1.28:brightness=0.02:saturation=1.35:gamma_r=1.06:gamma_b=0.90,"
+        "curves=r='0/0 0.5/0.56 1/1':b='0/0 0.5/0.44 1/0.90'"
     )
 
+    frames = max(1, int(duration * OUT_FPS))
+
     vf = (
-        # 1. Scale to fill 1080x1920 (crop center)
-        "scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920,"
-        "setsar=1,fps=30,"
-        # 2. Slow zoom-in (Ken Burns) — 1.0 to 1.08 scale over full clip
-        f"zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-        f":d={max(1, int(duration * 30))}:s=1080x1920:fps=30,"
-        # 3. Cinematic colour grade
+        # 1. Upscale to 4K vertical with lanczos (high quality)
+        f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase:flags=lanczos,"
+        f"crop={OUT_W}:{OUT_H},"
+        f"setsar=1,fps={OUT_FPS},"
+        # 2. Slow Ken Burns zoom at 60fps
+        f"zoompan=z='min(zoom+0.0004,1.06)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+        f":d={frames}:s={OUT_W}x{OUT_H}:fps={OUT_FPS},"
+        # 3. Colour grade
         f"{grade}"
     )
 
@@ -53,7 +58,8 @@ def make_vertical_clip(input_path: str, output_path: str, duration: float):
         "-i", input_path,
         "-t", str(duration),
         "-vf", vf,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+        "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+        "-profile:v", "high", "-level", "5.2",
         "-an",
         output_path,
     ]
@@ -98,9 +104,9 @@ def build_caption_filter(script: str, total_duration: float) -> str:
 
         filters.append(
             f"drawtext=text='{display}'"
-            f":fontsize=44"
+            f":fontsize=88"
             f":fontcolor=white"
-            f":borderw=4"
+            f":borderw=6"
             f":bordercolor=black"
             f":x=(w-text_w)/2"
             f":y=h*0.78"
@@ -165,25 +171,23 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
         capture_output=True,
     )
 
-    # Step 3: Build caption filter
+    # Step 3: Build caption filter (scale font for 4K width)
     caption_filter = build_caption_filter(script, audio_duration)
 
-    # Step 4: Final composite — video + audio + captions + fade-in + channel brand
+    # Step 4: Final composite — 4K 60fps MOV
     abs_audio = os.path.abspath(audio_path)
     abs_concat = concat_out
 
-    # Channel branding overlay (top-left watermark) using drawtext
     brand_filter = (
         "drawtext=text='\\U0001f981 WildStrikeAI'"
-        ":fontsize=36"
+        ":fontsize=72"
         ":fontcolor=yellow"
-        ":borderw=3"
+        ":borderw=5"
         ":bordercolor=black"
-        ":x=20:y=30"
+        ":x=40:y=55"
         ":enable='between(t,0,{dur})'".format(dur=target_duration)
     )
 
-    # Fade in first 0.5s
     fade_filter = "fade=t=in:st=0:d=0.5"
 
     full_vf = f"{caption_filter},{brand_filter},{fade_filter}"
@@ -196,16 +200,17 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
             "-filter_complex", f"[0:v]{full_vf}[v]",
             "-map", "[v]",
             "-map", "1:a",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-            "-c:a", "aac", "-b:a", "128k",
+            "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+            "-profile:v", "high", "-level", "5.2",
+            "-c:a", "aac", "-b:a", "192k",
             "-t", str(target_duration),
             "-shortest",
             "-movflags", "+faststart",
-            output_path,
+            output_path,   # .mov extension = MOV container
         ],
         check=True,
         capture_output=True,
     )
 
-    print(f"[Video] Final short ready: {output_path}")
+    print(f"[Video] Final 4K 60fps MOV ready: {output_path}")
     return output_path

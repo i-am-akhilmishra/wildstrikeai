@@ -74,7 +74,7 @@ def upload_short(
             video_path,
             chunksize=-1,
             resumable=True,
-            mimetype="video/mp4",
+            mimetype="video/quicktime",  # MOV format
         ),
     )
 

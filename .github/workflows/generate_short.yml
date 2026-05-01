@@ -45,7 +45,7 @@ jobs:
         with:
           name: review-package
           path: |
-            final_short.mp4
+            final_short.mov
             thumbnail.jpg
             script.txt
           retention-days: 5
