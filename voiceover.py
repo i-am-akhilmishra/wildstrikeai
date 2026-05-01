@@ -26,8 +26,8 @@ async def _generate_async(script: str, output_path: str):
     communicate = edge_tts.Communicate(
         text=script,
         voice=voice,
-        rate="+5%",       # slight speed boost for dramatic pacing
-        pitch="-5Hz",     # slightly deeper pitch for gravitas
+        rate="-8%",       # slightly slower = more dramatic, easier to follow
+        pitch="-8Hz",     # deeper pitch for gravitas
     )
     await communicate.save(output_path)
 

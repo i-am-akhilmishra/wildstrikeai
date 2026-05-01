@@ -60,7 +60,7 @@ def main():
         sys.exit(1)
 
     # ── Step 4: Assemble video ──
-    print("\n[4/5] Assembling 4K 60fps video...")
+    print("\n[4/5] Assembling 4K 60fps 70-second video...")
     video_path = assemble_video(clips, audio_path, script, "final_short.mov")
 
     # ── Step 5: Thumbnail ──

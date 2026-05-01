@@ -6,89 +6,86 @@ import datetime
 
 # Each entry: (script topic description, footage search term for Pexels)
 TOPICS = [
-    ("a cheetah chasing a gazelle at full sprint across the savanna",   "cheetah running fast"),
-    ("a lion pride ambushing a wildebeest at dusk",                     "lion hunting africa"),
-    ("a leopard silently stalking its prey through tall grass",         "leopard wildlife africa"),
-    ("a crocodile launching from a river to catch a zebra",             "crocodile river africa"),
-    ("a pack of wild dogs cornering an impala",                         "wild dogs hunting africa"),
-    ("a great white shark ambushing a seal from below",                 "great white shark ocean"),
-    ("a wolf pack chasing an elk through deep snow",                    "wolf pack hunting snow"),
-    ("a golden eagle diving at 200mph to snatch a rabbit",              "eagle hunting bird prey"),
+    ("a cheetah chasing a gazelle at full sprint across the open savanna",         "cheetah running fast"),
+    ("a lion pride ambushing a wildebeest herd at dusk in the Serengeti",           "lion hunting africa"),
+    ("a leopard silently stalking prey through dense jungle undergrowth",            "leopard wildlife jungle"),
+    ("a crocodile launching from a river to catch a zebra drinking at the bank",    "crocodile river attack"),
+    ("a pack of wild dogs relentlessly cornering an impala across the plains",      "wild dogs hunting africa"),
+    ("a great white shark breaching the surface to ambush a seal",                  "great white shark ocean"),
+    ("a wolf pack driving an elk to exhaustion through a frozen forest",            "wolf pack hunting snow"),
+    ("a golden eagle stooping at 200mph onto a mountain hare",                      "eagle hunting bird prey"),
+    ("a jaguar ambushing a caiman in the dense Amazon rainforest",                  "jaguar jungle amazon"),
+    ("a tiger stalking a deer through tall grass at the edge of a jungle stream",   "tiger wild jungle"),
+    ("a komodo dragon ambushing a deer on a remote Indonesian island",              "komodo dragon wildlife"),
+    ("a nile crocodile and hippo fighting over territory in a muddy river",         "hippo river africa"),
 ]
 
 # Pre-written fallback scripts paired with their search terms
 FALLBACK_SCRIPTS = [
     (
-        "The savanna holds its breath. A cheetah locks eyes on a distant gazelle. "
-        "Every muscle coils. The world slows. Then pure explosion. "
-        "Sixty miles per hour in three seconds. The gazelle twists. Turns. Runs for its life. "
-        "But the cheetah is faster. Smarter. Unstoppable. "
-        "One final lunge. Silence. "
-        "Nature has no mercy. Only winners and the forgotten.",
+        "The savanna bakes under a merciless sun. Nothing moves. Nothing breathes. "
+        "Then a cheetah rises from the golden grass. Its eyes lock on a gazelle three hundred metres away. "
+        "Every muscle in its body tightens. It lowers. It waits. "
+        "The gazelle lifts its head. Looks around. Senses nothing. "
+        "The cheetah explodes forward. Zero to seventy miles per hour in three strides. "
+        "The gazelle bolts left. The cheetah cuts inside. "
+        "Closer. Closer. A swipe of the paw. The gazelle tumbles. "
+        "Dust rises. Silence falls. "
+        "In the open wild, speed is the difference between life and death. "
+        "Today, the cheetah lives. The gazelle does not.",
         "cheetah running fast",
     ),
     (
-        "The Nile glitters under a blazing African sun. "
-        "A zebra steps toward the water. It does not see what waits below. "
-        "The crocodile has not moved in six hours. Stone-still. Patient. Ancient. "
-        "One second. One explosion of power. "
-        "Four hundred million years of evolution — unleashed in a single strike. "
-        "The river runs red. The crocodile wins again.",
-        "crocodile river africa",
+        "The Nile moves slowly under the midday heat. "
+        "A herd of zebra approaches the bank. They hesitate. They sense something. "
+        "But thirst wins. One zebra steps forward into the shallows. "
+        "Below the surface, two yellow eyes have been watching for six hours. "
+        "The crocodile has not moved. It does not need to. "
+        "In an instant, the water explodes. Jaws close with three thousand pounds of force. "
+        "The zebra fights. Kicks. Screams. The crocodile rolls. "
+        "The death roll is ancient. Unstoppable. Absolute. "
+        "The river settles. The surface goes calm again. "
+        "Four hundred million years of evolution just played out in eight seconds.",
+        "crocodile river attack",
     ),
     (
-        "Darkness falls across the Serengeti. "
-        "A lion pride moves like shadows through the tall grass. "
-        "Their target: a lone wildebeest, separated from the herd. "
-        "The lions split — left, right, cutting off every escape. "
-        "There is no running now. Nowhere to go. "
-        "This is what the top of the food chain looks like. Raw. Absolute. Final.",
+        "Midnight in the Serengeti. The lions have been watching the wildebeest herd for two hours. "
+        "They move in silence. Splitting left and right through the darkness. "
+        "One wildebeest stands apart from the herd. Old. Slow. Exposed. "
+        "The lead lioness drops low. Ten metres. Five. Two. "
+        "She launches. Five hundred pounds of muscle and hunger. "
+        "The wildebeest bellows. The herd scatters. Too late. "
+        "Three more lions arrive within seconds. "
+        "The struggle is fierce. But the outcome was decided the moment it stepped away from the herd. "
+        "The savanna goes dark again. "
+        "The lions feed. This is the law of the wild. Brutal. Honest. Final.",
         "lion hunting africa",
     ),
     (
-        "High above the Scottish highlands, a golden eagle circles. "
-        "Below, a rabbit grazes, completely unaware. "
-        "The eagle folds its wings. Becomes a missile. "
-        "Two hundred miles per hour. Razor talons forward. "
-        "The rabbit has zero warning. Zero chance. "
-        "From sky to strike in under three seconds. Nature's perfect hunter.",
-        "eagle hunting bird prey",
+        "The Amazon is ancient. Dense. Alive with unseen danger. "
+        "A caiman rests on the muddy bank, completely still in the morning heat. "
+        "In the branches above, a jaguar watches. It has been there for forty minutes. "
+        "The jaguar moves like water. Silent. Liquid. Down through the branches and onto the bank. "
+        "The caiman does not hear a single sound. "
+        "The jaguar strikes with a bite force that crushes bone. "
+        "No chase. No warning. No second chances in the jungle. "
+        "The caiman thrashes once. Then twice. Then nothing. "
+        "The jaguar drags its kill into the shadows of the rainforest. "
+        "In here, the apex predator strikes without mercy.",
+        "jaguar jungle amazon",
     ),
     (
-        "The African wild dogs have been running for forty minutes. "
-        "Their prey, an impala, is slowing down. "
-        "These hunters never quit. They never give up. "
-        "Working together, perfectly coordinated, cutting every angle. "
-        "The impala stumbles. The pack closes in. "
-        "In the wild, endurance beats speed. Every single time.",
-        "wild dogs hunting africa",
-    ),
-    (
-        "A leopard moves through the night like liquid shadow. "
-        "It has stalked this antelope for two hours. Unseen. Unheard. "
-        "Closer. Closer. Twenty metres. Ten. Five. "
-        "One explosive leap. Powerful jaws lock on. "
-        "The struggle lasts seconds. "
-        "Darkness reclaims the bush. The leopard disappears with its prize.",
-        "leopard wildlife africa",
-    ),
-    (
-        "Deep beneath the cold Atlantic, a great white circles. "
-        "The seal swims above, unaware of the shadow rising below. "
-        "The shark accelerates. A hundred kilograms of muscle and instinct. "
-        "The surface explodes. An eruption of power and spray. "
-        "The ocean is calm again in seconds. "
-        "Down here, the hunter never announces itself.",
-        "great white shark ocean",
-    ),
-    (
-        "Winter has locked the forest in silence. "
-        "A lone elk breaks through the snow, breathing hard. "
-        "Behind it — seven wolves. Coordinated. Relentless. Patient. "
-        "They take turns. They tire it out. They wait for the moment. "
-        "The elk stumbles once. That is all it takes. "
-        "In the frozen wild, the pack always wins.",
-        "wolf pack hunting snow",
+        "The tiger waits at the edge of the jungle stream. Perfectly still. Invisible in the dappled light. "
+        "A spotted deer steps into the shallows to drink. It does not look up. "
+        "It cannot see the orange and black shape crouched fifteen metres away. "
+        "The tiger reads every movement. Every flicker. Every breath. "
+        "It waits for the deer to lower its head. "
+        "Then it moves. A low sprint through the long grass. "
+        "Twelve metres. Eight. Four. "
+        "The strike is explosive. Jaws locked on the throat. "
+        "The deer collapses in seconds. "
+        "The jungle absorbs everything. The tiger disappears. As if nothing ever happened.",
+        "tiger wild jungle",
     ),
 ]
 
@@ -141,14 +138,14 @@ def generate_script() -> tuple:
     print(f"[Script] Footage search term: {search_term}")
 
     prompt = (
-        f"Write a dramatic wildlife narration script for a 40-second YouTube Shorts video.\n\n"
+        f"Write a dramatic wildlife narration script for a 70-second YouTube Shorts video.\n\n"
         f"Topic: {topic_desc}\n\n"
         f"Requirements:\n"
-        f"- Exactly 90 to 100 words total (matches ~40 seconds at natural speaking pace)\n"
-        f"- Dramatic, gripping, David Attenborough style\n"
+        f"- Exactly 155 to 165 words total (matches ~70 seconds at natural speaking pace)\n"
+        f"- Dramatic, raw, gripping — like a David Attenborough jungle documentary\n"
         f"- Short punchy sentences, maximum 12 words per sentence\n"
         f"- No stage directions, no scene descriptions, pure narration only\n"
-        f"- Build tension and end with a powerful single-line conclusion\n\n"
+        f"- Build tension steadily, reach a violent climax, end with one brutal conclusion line\n\n"
         f"Output ONLY the narration text. No titles, no labels, no quotes."
     )
 
