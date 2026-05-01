@@ -19,9 +19,16 @@ def get_credentials() -> Credentials:
     return creds
 
 
-def upload_short(video_path: str, thumbnail_path: str = None, title: str = None, description: str = None) -> str:
+def upload_short(
+    video_path: str,
+    thumbnail_path: str = None,
+    title: str = None,
+    description: str = None,
+    tags: list = None,
+) -> str:
     """
     Uploads video to YouTube as a Short and sets the custom thumbnail.
+    Accepts trending tags list from trending_hashtags.py.
     Returns the YouTube video ID.
     """
     creds = get_credentials()
@@ -38,17 +45,23 @@ def upload_short(video_path: str, thumbnail_path: str = None, title: str = None,
             "#WildAnimals #Lion #Cheetah #Leopard #WildStrikeAI"
         )
 
+    if not tags:
+        tags = [
+            "wildlife", "shorts", "animals", "predator",
+            "nature", "WildStrikeAI", "lion", "cheetah",
+            "leopard", "hunting", "wild",
+        ]
+
+    # YouTube allows max 30 tags
+    tags = tags[:30]
+
     insert_request = youtube.videos().insert(
         part="snippet,status",
         body={
             "snippet": {
                 "title": title,
                 "description": description,
-                "tags": [
-                    "wildlife", "shorts", "animals", "predator",
-                    "nature", "WildStrikeAI", "lion", "cheetah",
-                    "leopard", "hunting", "wild",
-                ],
+                "tags": tags,
                 "categoryId": "15",        # Pets & Animals
                 "defaultLanguage": "en",
             },
