@@ -30,8 +30,8 @@ OUT_FPS = 60
 def make_vertical_clip(input_path: str, output_path: str, duration: float):
     """
     Converts any clip to 2160x3840 (4K 9:16 vertical) at 60fps.
-    - Lanczos upscale to 4K
-    - Ken Burns slow zoom
+    - Ken Burns zoom runs at 1080p (540x960) to stay within GitHub Actions RAM
+    - Final Lanczos upscale to 4K after zoompan
     - Cinematic orange-teal colour grade
     """
     grade = (
@@ -39,17 +39,22 @@ def make_vertical_clip(input_path: str, output_path: str, duration: float):
         "curves=r='0/0 0.5/0.56 1/1':b='0/0 0.5/0.44 1/0.90'"
     )
 
+    # zoompan at 1080p (540x960) — uses ~16x less RAM than 4K
+    ZP_W, ZP_H = 540, 960
     frames = max(1, int(duration * OUT_FPS))
 
     vf = (
-        # 1. Upscale to 4K vertical with lanczos (high quality)
-        f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase:flags=lanczos,"
-        f"crop={OUT_W}:{OUT_H},"
+        # 1. Scale + crop to 1080p vertical first
+        f"scale={ZP_W}:{ZP_H}:force_original_aspect_ratio=increase:flags=lanczos,"
+        f"crop={ZP_W}:{ZP_H},"
         f"setsar=1,fps={OUT_FPS},"
-        # 2. Slow Ken Burns zoom at 60fps
+        # 2. Ken Burns zoom at 1080p (RAM-safe)
         f"zoompan=z='min(zoom+0.0004,1.06)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-        f":d={frames}:s={OUT_W}x{OUT_H}:fps={OUT_FPS},"
-        # 3. Colour grade
+        f":d={frames}:s={ZP_W}x{ZP_H}:fps={OUT_FPS},"
+        # 3. Upscale to 4K with lanczos
+        f"scale={OUT_W}:{OUT_H}:flags=lanczos,"
+        f"setsar=1,"
+        # 4. Colour grade
         f"{grade}"
     )
 
@@ -58,7 +63,7 @@ def make_vertical_clip(input_path: str, output_path: str, duration: float):
         "-i", input_path,
         "-t", str(duration),
         "-vf", vf,
-        "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
         "-profile:v", "high", "-level", "5.2",
         "-an",
         output_path,
