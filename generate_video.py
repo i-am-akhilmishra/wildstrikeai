@@ -15,6 +15,7 @@ from pipeline.voiceover import generate_voiceover
 from pipeline.footage_fetcher import fetch_wildlife_clips
 from pipeline.video_assembler import assemble_video
 from pipeline.thumbnail_generator import generate_thumbnail
+from pipeline.trending_hashtags import get_trending_hashtags, BASE_TAGS
 
 
 def main():
@@ -60,9 +61,23 @@ def main():
         print("[ERROR] No footage downloaded. Check your PEXELS_API_KEY.")
         sys.exit(1)
 
+    # ── Fetch trending hashtags for video overlay ──
+    print("\n[Trending] Fetching hashtags for video overlay...")
+    try:
+        yt_key = os.environ.get("YOUTUBE_API_KEY")
+        if yt_key:
+            hashtags = get_trending_hashtags(youtube_api_key=yt_key)
+        else:
+            hashtags = BASE_TAGS[:10]
+            print("[Trending] YOUTUBE_API_KEY not set — using base tags")
+    except Exception as e:
+        print(f"[Trending] Failed to fetch trending tags: {e} — using base tags")
+        hashtags = BASE_TAGS[:10]
+    print(f"[Trending] Top tags: {hashtags[:5]}")
+
     # ── Step 4: Assemble video ──
-    print("\n[4/5] Assembling 4K 60fps 70-second video...")
-    video_path = assemble_video(clips, audio_path, script, "final_short.mov")
+    print("\n[4/5] Assembling 1080p 30fps video...")
+    video_path = assemble_video(clips, audio_path, script, "final_short.mov", hashtags=hashtags)
 
     # ── Step 5: Thumbnail ──
     print("\n[5/5] Generating thumbnail...")
