@@ -106,4 +106,109 @@ def fetch_wildlife_clips(api_key: str, search_term: str = None, num_clips: int =
                 continue
 
     print(f"[Pexels] Downloaded {len(downloaded)} clips")
+
+    # ── Wikimedia Commons fallback — if Pexels returned fewer than needed ──
+    if len(downloaded) < num_clips:
+        shortfall = num_clips - len(downloaded)
+        print(f"[Wikimedia] Pexels only returned {len(downloaded)} clips — fetching {shortfall} more from Wikimedia Commons...")
+        wikimedia_clips = _fetch_wikimedia_clips(term, shortfall, save_dir, start_index=len(downloaded))
+        downloaded.extend(wikimedia_clips)
+        print(f"[Wikimedia] Total clips after fallback: {len(downloaded)}")
+
+    return downloaded
+
+
+def _fetch_wikimedia_clips(search_term: str, num_clips: int, save_dir: str, start_index: int = 0) -> list:
+    """
+    Fetches free wildlife video clips from Wikimedia Commons.
+    No API key required — fully open, CC-licensed content.
+    BBC, USGS, wildlife foundations donate clips here.
+    """
+    # Simplify term for Wikimedia search (works better with shorter keywords)
+    simple_term = search_term.split()[0:2]  # e.g. "lion hunting africa" → "lion hunting"
+    query = " ".join(simple_term)
+
+    params = {
+        "action": "query",
+        "list": "search",
+        "srsearch": f"{query} filetype:video",
+        "srnamespace": "6",   # namespace 6 = File: (media files)
+        "srlimit": "20",
+        "format": "json",
+    }
+
+    try:
+        resp = requests.get(
+            "https://commons.wikimedia.org/w/api.php",
+            params=params,
+            timeout=20,
+            headers={"User-Agent": "WildStrikeAI/1.0 (wildlife shorts bot; educational use)"},
+        )
+        resp.raise_for_status()
+        results = resp.json().get("query", {}).get("search", [])
+    except Exception as e:
+        print(f"[Wikimedia] Search failed: {e}")
+        return []
+
+    downloaded = []
+    for item in results:
+        if len(downloaded) >= num_clips:
+            break
+
+        title = item.get("title", "")  # e.g. "File:Lion hunting.ogv"
+        if not title.startswith("File:"):
+            continue
+
+        # Get direct download URL via imageinfo API
+        try:
+            info_resp = requests.get(
+                "https://commons.wikimedia.org/w/api.php",
+                params={
+                    "action": "query",
+                    "titles": title,
+                    "prop": "imageinfo",
+                    "iiprop": "url|mime|size",
+                    "format": "json",
+                },
+                timeout=15,
+                headers={"User-Agent": "WildStrikeAI/1.0"},
+            )
+            info_resp.raise_for_status()
+            pages = info_resp.json().get("query", {}).get("pages", {})
+            page = next(iter(pages.values()))
+            imageinfo = page.get("imageinfo", [{}])[0]
+            mime = imageinfo.get("mime", "")
+            url = imageinfo.get("url", "")
+
+            # Only accept actual video files
+            if not mime.startswith("video/") or not url:
+                continue
+
+            # Skip very large files (>150MB) to avoid timeout
+            size_bytes = imageinfo.get("size", 0)
+            if size_bytes > 150 * 1024 * 1024:
+                continue
+
+        except Exception as e:
+            print(f"[Wikimedia] Failed to get info for {title}: {e}")
+            continue
+
+        # Determine extension from mime
+        ext_map = {"video/webm": ".webm", "video/ogg": ".ogv", "video/mp4": ".mp4"}
+        ext = ext_map.get(mime, ".mp4")
+        clip_path = os.path.join(save_dir, f"clip_{start_index + len(downloaded)}{ext}")
+
+        print(f"[Wikimedia] Downloading: {title[:60]}...")
+        try:
+            r = requests.get(url, stream=True, timeout=120,
+                             headers={"User-Agent": "WildStrikeAI/1.0"})
+            r.raise_for_status()
+            with open(clip_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=16384):
+                    f.write(chunk)
+            downloaded.append(clip_path)
+        except Exception as e:
+            print(f"[Wikimedia] Download failed: {e}")
+            continue
+
     return downloaded
