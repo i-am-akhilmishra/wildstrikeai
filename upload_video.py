@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "pipeline"))
 
 from pipeline.youtube_uploader import upload_short
-from pipeline.trending_hashtags import get_trending_hashtags, build_hashtag_string
+from pipeline.trending_hashtags import get_trending_hashtags
 
 
 def main():
@@ -19,12 +19,14 @@ def main():
     print("  WildStrikeAI — YouTube Upload (Step 2/2)")
     print("=" * 50)
 
-    # ── Fetch trending hashtags ──
+    # Fetch 7-10 trending hashtags for description
     print("\n[Trending] Fetching live trending hashtags...")
     tags = get_trending_hashtags(
         youtube_api_key=os.environ["YOUTUBE_API_KEY"],
     )
-    hashtag_str = build_hashtag_string(tags)
+    # Use 7-10 trending tags in description
+    trending = tags[:10]
+    hashtag_line = " ".join(f"#{t.lstrip('#')}" for t in trending)
 
     # Build title using top trending tag
     top_tag = tags[0].capitalize() if tags else "Wildlife"
@@ -33,12 +35,12 @@ def main():
         f"#Shorts #Wildlife #WildStrikeAI"
     )
 
-    # Build description with trending hashtags
+    # Description: hook + trending hashtags (7-10) in the caption section
     description = (
-        "Watch nature's most powerful predators in action!\n\n"
-        "AI-generated wildlife narration by WildStrikeAI.\n\n"
-        f"{hashtag_str}\n\n"
-        "#Shorts #WildStrikeAI #Wildlife #NatureShorts #Animals"
+        "Watch nature's most powerful predators in action — real footage, cinematic narration.\n\n"
+        "New wildlife Short every day. Subscribe so you never miss a hunt.\n\n"
+        f"{hashtag_line}\n"
+        "#Shorts #WildStrikeAI #Wildlife #NatureDocumentary #Animals"
     )
 
     print(f"\n[Upload] Title: {title}")

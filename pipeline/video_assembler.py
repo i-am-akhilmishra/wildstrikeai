@@ -120,8 +120,9 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
     1. Convert all clips to 9:16 vertical
     2. Concatenate clips to cover audio duration
     3. Overlay voiceover audio
-    4. Burn caption text + hashtag strip
+    4. WildStrikeAI watermark + fade-in
     5. Export final_short.mov
+    Hashtags go in the YouTube description (upload_video.py), not burned into video.
     """
     audio_duration = get_duration(audio_path)
     target_duration = audio_duration + 1.0  # 1s fade buffer
@@ -173,32 +174,6 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
     abs_audio = os.path.abspath(audio_path)
     abs_concat = concat_out
 
-    # Caption filter — script text in chunks across the video
-    caption_filter = build_caption_filter(script, audio_duration)
-
-    # Hashtag strip — top 3 trending tags shown at bottom throughout
-    top_tags = (hashtags or [])[:3]
-    if not top_tags:
-        top_tags = ["wildlife", "WildStrikeAI", "shorts"]
-    hashtag_text = "  ".join(f"#{t.lstrip('#')}" for t in top_tags)
-    hashtag_text = (
-        hashtag_text
-        .replace("'", "\u2019")
-        .replace(":", "\\:")
-        .replace("%", "\\%")
-        .replace(",", "\\,")
-    )
-    hashtag_filter = (
-        f"drawtext=text='{hashtag_text}'"
-        ":fontsize=28"
-        ":fontcolor=white@0.85"
-        ":borderw=2"
-        ":bordercolor=black@0.6"
-        ":x=(w-text_w)/2"
-        f":y=h*0.93"
-        f":enable='between(t,0,{target_duration})'"
-    )
-
     brand_filter = (
         "drawtext=text='WildStrikeAI'"
         ":fontsize=36"
@@ -211,7 +186,7 @@ def assemble_video(clips: list, audio_path: str, script: str, output_path: str =
 
     fade_filter = "fade=t=in:st=0:d=0.5"
 
-    full_vf = f"{caption_filter},{hashtag_filter},{brand_filter},{fade_filter}"
+    full_vf = f"{brand_filter},{fade_filter}"
 
     subprocess.run(
         [
