@@ -9,6 +9,7 @@ Returns: list of (chapter_title, script, search_term)
 import os
 import datetime
 import random
+import requests
 
 try:
     from google import genai
@@ -34,6 +35,8 @@ ALL_SEGMENT_TOPICS = [
 ]
 
 GEMINI_MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]
+GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+OPENROUTER_MODELS = ["mistralai/mistral-7b-instruct:free", "meta-llama/llama-3-8b-instruct:free"]
 
 SEGMENT_PROMPT = """Write a dramatic wildlife documentary narration script for this segment:
 
@@ -42,7 +45,8 @@ Chapter title: "{chapter_title}"
 
 Requirements:
 - Exactly 400 to 440 words
-- Opens with a powerful atmospheric hook — place the viewer in the scene immediately
+- FIRST SENTENCE: 8 words or fewer, present tense, zero setup — place the viewer in the scene immediately
+- Opens with a powerful atmospheric hook
 - Builds tension progressively through the hunt or encounter
 - Peaks at the climactic strike or confrontation
 - Closes with a reflection on what this moment reveals about survival
@@ -259,6 +263,63 @@ def _pick_today_segments(n: int = 5) -> list:
     return [ALL_SEGMENT_TOPICS[i] for i in indices]
 
 
+def _try_groq_segment(prompt: str) -> str | None:
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        return None
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    for model in GROQ_MODELS:
+        try:
+            print(f"[Script] Trying Groq/{model}...")
+            resp = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json={"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 700},
+                timeout=30,
+            )
+            if resp.status_code == 429:
+                continue
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            if len(text.split()) >= 380:
+                print(f"[Script] Groq/{model} succeeded")
+                return text
+        except Exception as e:
+            print(f"[Script] Groq/{model} error: {str(e)[:80]}")
+    return None
+
+
+def _try_openrouter_segment(prompt: str) -> str | None:
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        return None
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/i-am-akhilmishra/wildstrikeai",
+        "X-Title": "WildStrikeAI",
+    }
+    for model in OPENROUTER_MODELS:
+        try:
+            print(f"[Script] Trying OpenRouter/{model}...")
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 700},
+                timeout=30,
+            )
+            if resp.status_code == 429:
+                continue
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            if len(text.split()) >= 380:
+                print(f"[Script] OpenRouter/{model} succeeded")
+                return text
+        except Exception as e:
+            print(f"[Script] OpenRouter/{model} error: {str(e)[:80]}")
+    return None
+
+
 def _generate_with_gemini(api_key: str, chapter_title: str, topic_desc: str) -> str | None:
     if not GENAI_AVAILABLE:
         return None
@@ -293,8 +354,19 @@ def generate_longform_segments(n: int = 5) -> list:
     results = []
     for chapter_title, topic_desc, search_term in topics:
         script = None
+        prompt = SEGMENT_PROMPT.format(chapter_title=chapter_title, topic_desc=topic_desc)
+
+        # Fallback chain: Gemini → Groq → OpenRouter → pre-written bank
         if api_key:
             script = _generate_with_gemini(api_key, chapter_title, topic_desc)
+
+        if not script:
+            print(f"[Script] '{chapter_title}' — trying Groq...")
+            script = _try_groq_segment(prompt)
+
+        if not script:
+            print(f"[Script] '{chapter_title}' — trying OpenRouter...")
+            script = _try_openrouter_segment(prompt)
 
         if not script:
             fallback = fallback_by_title.get(chapter_title)

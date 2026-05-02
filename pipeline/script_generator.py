@@ -2,6 +2,7 @@ from google import genai
 import os
 import random
 import datetime
+import requests
 
 
 # Each entry: (script topic description, footage search term for Pexels)
@@ -96,6 +97,20 @@ GEMINI_MODELS = [
     "gemini-2.0-flash",
 ]
 
+# Groq free models — https://console.groq.com (free tier: 30 req/min)
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+]
+
+# OpenRouter free models — https://openrouter.ai (free tier available)
+OPENROUTER_MODELS = [
+    "mistralai/mistral-7b-instruct:free",
+    "meta-llama/llama-3-8b-instruct:free",
+    "google/gemma-3-4b-it:free",
+]
+
 
 def _pick_topic_for_today() -> tuple:
     """
@@ -128,10 +143,85 @@ def _try_gemini(topic_desc: str, prompt: str):
     return None
 
 
-def generate_script() -> tuple:
+def _try_groq(prompt: str) -> str | None:
+    """Calls Groq API (free tier) — Llama 3 / Mixtral models."""
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        print("[Script] GROQ_API_KEY not set — skipping Groq")
+        return None
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    for model in GROQ_MODELS:
+        try:
+            print(f"[Script] Trying Groq model: {model}...")
+            resp = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 400,
+                    "temperature": 0.85,
+                },
+                timeout=30,
+            )
+            if resp.status_code == 429:
+                print(f"[Script] Groq {model} rate limited — trying next...")
+                continue
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            if len(text.split()) >= 100:
+                print(f"[Script] Success with Groq/{model}")
+                return text
+        except Exception as e:
+            print(f"[Script] Groq {model} error: {str(e)[:80]}")
+    return None
+
+
+def _try_openrouter(prompt: str) -> str | None:
+    """Calls OpenRouter API (free models available) — Mistral / Llama."""
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        print("[Script] OPENROUTER_API_KEY not set — skipping OpenRouter")
+        return None
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/i-am-akhilmishra/wildstrikeai",
+        "X-Title": "WildStrikeAI",
+    }
+    for model in OPENROUTER_MODELS:
+        try:
+            print(f"[Script] Trying OpenRouter model: {model}...")
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 400,
+                },
+                timeout=30,
+            )
+            if resp.status_code == 429:
+                print(f"[Script] OpenRouter {model} rate limited — trying next...")
+                continue
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            if len(text.split()) >= 100:
+                print(f"[Script] Success with OpenRouter/{model}")
+                return text
+        except Exception as e:
+            print(f"[Script] OpenRouter {model} error: {str(e)[:80]}")
+    return None
+
+
     """
     Returns (script_text, footage_search_term) so footage always matches narration.
-    Topic rotates daily — no repeats for 8 days.
+    Topic rotates daily — no repeats for 12 days.
+    Fallback chain: Gemini → Groq (Llama 3) → OpenRouter (Mistral) → pre-written bank.
     """
     topic_desc, search_term = _pick_topic_for_today()
     print(f"[Script] Today's topic: {topic_desc}")
@@ -142,6 +232,7 @@ def generate_script() -> tuple:
         f"Topic: {topic_desc}\n\n"
         f"Requirements:\n"
         f"- Exactly 155 to 165 words total (matches ~70 seconds at natural speaking pace)\n"
+        f"- FIRST SENTENCE: 8 words or fewer, present tense, zero setup — drop the viewer into the action instantly\n"
         f"- Dramatic, raw, gripping — like a David Attenborough jungle documentary\n"
         f"- Short punchy sentences, maximum 12 words per sentence\n"
         f"- No stage directions, no scene descriptions, pure narration only\n"
@@ -149,20 +240,28 @@ def generate_script() -> tuple:
         f"Output ONLY the narration text. No titles, no labels, no quotes."
     )
 
+    # ── Fallback chain: Gemini → Groq → OpenRouter → pre-written bank ──
     script = _try_gemini(topic_desc, prompt)
 
+    if not script:
+        print("[Script] All Gemini models exhausted — trying Groq...")
+        script = _try_groq(prompt)
+
+    if not script:
+        print("[Script] Groq exhausted — trying OpenRouter...")
+        script = _try_openrouter(prompt)
+
     if script:
-        print(f"[Script — Gemini]\n{script}\n")
+        print(f"[Script — AI Generated]\n{script}\n")
         return script, search_term
 
-    # Gemini quota exhausted — find matching fallback for today's search term
-    print("[Script] All Gemini models exhausted — using pre-written script bank")
+    # All AI sources exhausted — use pre-written bank
+    print("[Script] All AI sources exhausted — using pre-written script bank")
     for fallback_script, fallback_term in FALLBACK_SCRIPTS:
         if fallback_term == search_term:
             print(f"[Script — Fallback matched]\n{fallback_script}\n")
             return fallback_script, search_term
 
-    # Last resort — any fallback
     fallback_script, fallback_term = random.choice(FALLBACK_SCRIPTS)
     print(f"[Script — Fallback random]\n{fallback_script}\n")
     return fallback_script, fallback_term
