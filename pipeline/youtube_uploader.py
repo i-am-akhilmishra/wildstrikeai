@@ -25,9 +25,10 @@ def upload_short(
     title: str = None,
     description: str = None,
     tags: list = None,
+    mimetype: str = "video/quicktime",
 ) -> str:
     """
-    Uploads video to YouTube as a Short and sets the custom thumbnail.
+    Uploads video to YouTube and sets the custom thumbnail.
     Accepts trending tags list from trending_hashtags.py.
     Returns the YouTube video ID.
     """
@@ -74,7 +75,7 @@ def upload_short(
             video_path,
             chunksize=-1,
             resumable=True,
-            mimetype="video/quicktime",  # MOV format
+            mimetype=mimetype,
         ),
     )
 
@@ -85,8 +86,10 @@ def upload_short(
         if status:
             print(f"[YouTube] Upload progress: {int(status.progress() * 100)}%")
 
-    video_id = response.get("id", "UNKNOWN")
-    print(f"[YouTube] Upload complete! https://youtube.com/shorts/{video_id}")
+    video_id = response.get("id")
+    if not video_id:
+        raise RuntimeError(f"[YouTube] Upload failed — API response contained no video ID. Response: {response}")
+    print(f"[YouTube] Upload complete! https://youtube.com/watch?v={video_id}")
 
     # Set custom thumbnail if provided
     if thumbnail_path and os.path.exists(thumbnail_path):

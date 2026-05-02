@@ -59,13 +59,20 @@ def main():
     print(f"[Upload] Trending tags: {trending[:5]}...")
 
     print("\n[Upload] Uploading long-form video to YouTube...")
-    upload_short(
-        "final_longform.mp4",
-        "longform_thumbnail.jpg",
-        title=title,
-        description=description,
-        tags=tags_list[:30],
-    )
+    try:
+        upload_short(
+            "final_longform.mp4",
+            "longform_thumbnail.jpg",
+            title=title,
+            description=description,
+            tags=tags_list[:30],
+            mimetype="video/mp4",
+        )
+    except Exception as e:
+        print(f"\n[FAILED] Video was NOT uploaded to YouTube.")
+        print(f"[FAILED] Reason: {e}")
+        print("=" * 58)
+        sys.exit(1)
 
     print("\n" + "=" * 58)
     print("  Done! Check your YouTube channel.")

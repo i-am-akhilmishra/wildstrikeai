@@ -48,7 +48,13 @@ def main():
 
     # ── Upload ──
     print("\n[6/6] Uploading approved video to YouTube...")
-    upload_short("final_short.mov", "thumbnail.jpg", title=title, description=description)
+    try:
+        upload_short("final_short.mov", "thumbnail.jpg", title=title, description=description)
+    except Exception as e:
+        print(f"\n[FAILED] Video was NOT uploaded to YouTube.")
+        print(f"[FAILED] Reason: {e}")
+        print("=" * 50)
+        sys.exit(1)
 
     print("\n" + "=" * 50)
     print("  Done! Check your YouTube channel.")
