@@ -15,23 +15,24 @@ ALL_VOICES = [
 ]
 
 
-async def _generate_async(script: str, output_path: str):
-    voice = random.choice(ALL_VOICES)
-    print(f"[Voiceover] Using voice: {voice}")
+async def _generate_async(script: str, output_path: str, voice: str = None):
+    selected = voice if voice else random.choice(ALL_VOICES)
+    print(f"[Voiceover] Using voice: {selected}")
     communicate = edge_tts.Communicate(
         text=script,
-        voice=voice,
+        voice=selected,
         rate="-20%",      # noticeably slower — natural documentary pace
         pitch="-3Hz",    # very slight depth, keeps voice sounding natural
     )
     await communicate.save(output_path)
 
 
-def generate_voiceover(script: str, output_path: str = "voiceover.mp3") -> str:
+def generate_voiceover(script: str, output_path: str = "voiceover.mp3", voice: str = None) -> str:
     """
     Converts script to AI speech using Microsoft Edge Neural TTS.
     Completely free — no API key needed. Supports male & female dramatic voices.
+    Pass voice= to fix a specific narrator across multiple segments.
     """
-    asyncio.run(_generate_async(script, output_path))
+    asyncio.run(_generate_async(script, output_path, voice))
     print(f"[Voiceover] Saved to {output_path}")
     return output_path

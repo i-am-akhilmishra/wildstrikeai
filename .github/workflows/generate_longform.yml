@@ -1,0 +1,108 @@
+name: WildStrikeAI - Generate Long-Form Video (20-22 min)
+
+on:
+  workflow_dispatch:        # Manual trigger only — run when you want a long-form video
+    inputs:
+      segments:
+        description: 'Number of animal segments (4, 5, or 6)'
+        required: false
+        default: '5'
+
+jobs:
+
+  # ─────────────────────────────────────────────
+  # JOB 1: Generate long-form video
+  # ─────────────────────────────────────────────
+  generate:
+    name: 🎬 Generate Long-Form Documentary
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      artifact_date: ${{ env.ARTIFACT_DATE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install FFmpeg + fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-liberation
+
+      - name: Install Python dependencies
+        run: |
+          pip uninstall -y google-generativeai || true
+          pip install -r requirements.txt
+
+      - name: Generate long-form documentary
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python generate_longform.py
+
+      - name: Rename outputs with date
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          mv final_longform.mp4         ${DATE}_longform.mp4
+          mv longform_thumbnail.jpg     ${DATE}_longform_thumbnail.jpg
+          mv longform_script.txt        ${DATE}_longform_script.txt
+          mv longform_chapters.txt      ${DATE}_longform_chapters.txt
+          echo "ARTIFACT_DATE=${DATE}" >> $GITHUB_ENV
+
+      - name: Upload review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: longform-review-${{ env.ARTIFACT_DATE }}
+          path: |
+            ${{ env.ARTIFACT_DATE }}_longform.mp4
+            ${{ env.ARTIFACT_DATE }}_longform_thumbnail.jpg
+            ${{ env.ARTIFACT_DATE }}_longform_script.txt
+            ${{ env.ARTIFACT_DATE }}_longform_chapters.txt
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Upload to YouTube — waits for approval
+  # ─────────────────────────────────────────────
+  upload:
+    name: 🚀 Upload Long-Form to YouTube
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production   # ← pauses here, sends approval email
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download approved video package
+        uses: actions/download-artifact@v4
+        with:
+          name: longform-review-${{ needs.generate.outputs.artifact_date }}
+
+      - name: Restore standard filenames for upload script
+        run: |
+          mv *_longform.mp4          final_longform.mp4        || true
+          mv *_longform_thumbnail.jpg longform_thumbnail.jpg   || true
+          mv *_longform_chapters.txt  longform_chapters.txt    || true
+
+      - name: Upload long-form video to YouTube
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python upload_longform.py
